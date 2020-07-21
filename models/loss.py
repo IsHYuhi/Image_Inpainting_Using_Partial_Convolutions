@@ -1,6 +1,8 @@
-import torch
-import torch.nn as nn
 from torchvision import models
+import torch.nn as nn
+import torch
+
+
 
 class VGG16map(nn.Module):
     def __init__(self):
@@ -58,7 +60,7 @@ class Losses(nn.Module):
         # L_style_out, L_style_comp
         loss_dict['style'] = 0.0
         for i in range(3):
-            print(out_feature_map[i].shape)
+            #print(out_feature_map[i].shape)
             loss_dict['style'] += self.l1_loss(self.gram_matrix(out_feature_map[i]), self.gram_matrix(gt_feature_map[i]))
             loss_dict['style'] += self.l1_loss(self.gram_matrix(comp_feature_map[i]), self.gram_matrix(gt_feature_map[i]))
 
@@ -77,9 +79,9 @@ if __name__ == '__main__':
     mask = torch.ones(size)
     ground_truth = torch.randn(size)
     out = torch.randn(size)
-    out1, out2, out3 = net(input)
-    print(out1.shape)
-    print(out2.shape)
-    print(out3.shape)
+    map1, map2, map3 = net(input)
+    print(map1.shape)
+    print(map2.shape)
+    print(map3.shape)
     losses = Losses()
     print(losses(input, mask, out, ground_truth))

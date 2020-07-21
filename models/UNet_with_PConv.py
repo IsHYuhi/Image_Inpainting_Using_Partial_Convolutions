@@ -1,5 +1,5 @@
-import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn as nn
 import torch
 
 class PartialConv(nn.Module):
@@ -11,9 +11,7 @@ class PartialConv(nn.Module):
         self.mask_conv = nn.Conv2d(in_channels, out_channels, kernel_size,
                                    stride, padding, dilation, groups, False)
 
-        #self.mask_conv = nn.MaxPool2d(kernel_size, stride, padding, dilation)
         self.input_conv.apply(self.weights_init)
-        #self._initialize_weights()
 
         if batch_norm:
             self.batch_norm = nn.BatchNorm2d(out_channels)
@@ -25,13 +23,13 @@ class PartialConv(nn.Module):
 
         torch.nn.init.constant_(self.mask_conv.weight, 1.0)
 
-        # mask is not updated
+        # fix
         for param in self.mask_conv.parameters():
             param.requires_grad = False
 
 
     def forward(self, input, mask):
-        output = self.input_conv(input*mask)#チャネルごとに計算していることを考えるとmaxpoolはconcatしたときの実装がややめんどくさい
+        output = self.input_conv(input*mask)
         if self.input_conv.bias is not None:
             output_bias = self.input_conv.bias.view(1, -1, 1, 1).expand_as(output)
         else:
@@ -47,7 +45,7 @@ class PartialConv(nn.Module):
         mask_sum = output_mask.masked_fill_(mask_0, 1.0)
 
         output_pre = (output - output_bias) / mask_sum + output_bias
-        output = output_pre.masked_fill_(mask_0, 0.0)#maskが0の部分はしっかり0にして出力
+        output = output_pre.masked_fill_(mask_0, 0.0)
 
         # x' 0 (otherwize)
         new_m = torch.ones_like(output)
@@ -112,7 +110,6 @@ class PConvUNet(nn.Module):
         x7, m7 = self.pconv7(x6, m6)
         x8, m8 = self.pconv8(x7, m7)
 
-
         x8, m8 = F.interpolate(x8, scale_factor=2, mode='nearest'), F.interpolate(m8, scale_factor=2, mode='nearest')
         concat1, m_concat1 = torch.cat([x8, x7], dim=1), torch.cat([m8, m7], dim=1)
         x9, m9 = self.pconv9(concat1, m_concat1)
@@ -149,41 +146,34 @@ class PConvUNet(nn.Module):
 
 
     def train(self, mode=True):
-        """
-        Override the default train() to freeze the BN parameters
-        """
         super().train(mode)
         if self.fine_tune:
             for name, module in self.named_modules():
-                if isinstance(module, nn.BatchNorm2d) and ('9' or '10' or '11' or '12' or '13' or '14' or '15' or '16') in name:
-                    module.eval()
+                if name:
+                    if isinstance(module, nn.BatchNorm2d) and 1<=int(name.split('.')[0][5:])<=8:
+                        module.eval()
 
 
 if __name__ == '__main__':
     size = (3, 3, 256, 256)
     input = torch.ones(size)
     input_mask = torch.ones(size)
-    input_mask[:, :, 2:, :][:, :, :, 2:] = 0
-
-    conv = PartialConv(3, 3, 3, 1, 1)
     l1 = nn.L1Loss()
     input.requires_grad = True
 
-    # conv_test = nn.Conv2d(3, 17, 3, 1, 1)
-    # x = conv_test(input)
-    # print(x.shape)
-
+    conv = PartialConv(3, 3, 3, 1, 1)
     output, output_mask = conv(input, input_mask)
-    #print(output)
-    #print(output.shape)
-    #print(output_mask.shape)
+    print(output.shape)
+    print(output_mask.shape)
     loss = l1(output, torch.randn(3, 3, 256, 256))
     loss.backward()
-
-    #assert (torch.sum(input.grad != input.grad).item() == 0)
-    #assert (torch.sum(torch.isnan(conv.input_conv.weight.grad)).item() == 0)
-    #assert (torch.sum(torch.isnan(conv.input_conv.bias.grad)).item() == 0)
+    print(loss.item())
 
     model = PConvUNet()
     output, output_mask = model(input, input_mask)
     print(output.shape)
+    print(output_mask.shape)
+    loss = l1(output, torch.randn(3, 3, 256, 256))
+    loss.backward()
+    print(loss.item())
+
