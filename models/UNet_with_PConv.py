@@ -20,13 +20,11 @@ class PartialConv(nn.Module):
         elif non_linearity == 'leakyrelu':
             self.activation = nn.LeakyReLU(0.2, inplace=True)
 
-
         torch.nn.init.constant_(self.mask_conv.weight, 1.0)
 
         # fix
         for param in self.mask_conv.parameters():
             param.requires_grad = False
-
 
     def forward(self, input, mask):
         output = self.input_conv(input*mask)
@@ -51,8 +49,7 @@ class PartialConv(nn.Module):
         new_m = torch.ones_like(output)
         new_m = new_m.masked_fill_(mask_0, 0.0)
 
-
-        if hasattr(self, 'bn'):
+        if hasattr(self, 'batch_norm'):
             output = self.batch_norm(output)
         if hasattr(self, 'activation'):
             output = self.activation(output)
@@ -144,7 +141,6 @@ class PConvUNet(nn.Module):
 
         return out, out_mask
 
-
     def train(self, mode=True):
         super().train(mode)
         if self.fine_tune:
@@ -152,7 +148,6 @@ class PConvUNet(nn.Module):
                 if name:
                     if isinstance(module, nn.BatchNorm2d) and 1<=int(name.split('.')[0][5:])<=8:
                         module.eval()
-
 
 if __name__ == '__main__':
     size = (3, 3, 256, 256)

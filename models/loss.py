@@ -2,8 +2,6 @@ from torchvision import models
 import torch.nn as nn
 import torch
 
-
-
 class VGG16map(nn.Module):
     def __init__(self):
         super(VGG16map, self).__init__()
@@ -68,9 +66,6 @@ class Losses(nn.Module):
         loss_dict['tv'] = self.l1_loss(comp[:, :, :, :-1], comp[:, :, :, 1:]) + self.l1_loss(comp[:, :, :-1, :], comp[:, :, 1:, :])
 
         return loss_dict
-
-
-
 
 if __name__ == '__main__':
     net = VGG16map()
