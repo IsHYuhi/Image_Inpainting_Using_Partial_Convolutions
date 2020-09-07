@@ -6,11 +6,11 @@ from torchvision import transforms
 from PIL import Image
 import random
 
-def make_datapath_list(iorm='img',phase="train", rate=0.8):
+def make_datapath_list(iorm='img', path='img', phase="train", rate=0.8):
     """
     make filepath list for train and validation image and mask.
     """
-    rootpath = "./dataset/"+iorm
+    rootpath = "./dataset/"+path
     target_path = os.path.join(rootpath+'/*.jpg')
     #print(target_path)
 
@@ -27,6 +27,7 @@ def make_datapath_list(iorm='img',phase="train", rate=0.8):
     elif phase=='test' or iorm=='mask':
         return path_list
 
+
 class ImageTransform():
     """
     preprocessing images
@@ -39,6 +40,7 @@ class ImageTransform():
 
     def __call__(self, img):
         return self.data_transform(img)
+
 
 class MaskTransform():
     """
